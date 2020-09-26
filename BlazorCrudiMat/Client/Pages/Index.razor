@@ -1,0 +1,78 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager _nm 
+
+<MatTable Items="@_listaOsoba" class="mat-elevation-z5">
+	<MatTableHeader>
+		<th>Ime i prezime</th>
+		<th>Adresa</th>
+	</MatTableHeader>
+	<MatTableRow>
+		<td>@context.ImeiPrezime</td>
+		<td>@context.Adresa</td>
+		<td><MatButton OnClick="() => { _listaOsoba.Remove(context); }" Icon="3d_rotation"/></td>
+		<td><MatButton Icon="card_giftcard" OnClick="() =>
+													 {
+														 _osobaCon = context;
+														 _zaDialog = true;
+													 }"/></td>
+	</MatTableRow>
+</MatTable>
+
+<MatButton Raised="true" OnClick="() => { _zaDialog = true; }">Unos</MatButton>
+
+
+<MatDialog @bind-IsOpen="_zaDialog">
+	<MatDialogTitle>Editor</MatDialogTitle>
+	<MatDialogContent>
+		<MatTextField Label="Ime" @bind-Value="_osobaCon.Ime"></MatTextField>
+		<MatTextField Label="Prezime" @bind-Value="_osobaCon.Prezime"></MatTextField>
+		<MatTextField Label="PO" @bind-Value="_osobaCon.PObox"></MatTextField>
+		<MatTextField Label="Grad" @bind-Value="_osobaCon.Grad"></MatTextField>
+		<MatTextField Label="Ulica" @bind-Value="_osobaCon.Ulica"></MatTextField>
+		<MatTextField Label="Broj" @bind-Value="_osobaCon.Broj"></MatTextField>
+	</MatDialogContent>
+	<MatDialogActions>
+		<MatButton OnClick="@(() =>
+							  {
+								  _zaDialog = false;
+								  _osobaCon = new Osoba();
+							  })">Otkazi</MatButton>
+		<MatButton OnClick="() => {
+								if (!_listaOsoba.Contains(_osobaCon))
+									_listaOsoba.Add(_osobaCon);
+								_osobaCon = new Osoba();
+								_zaDialog = false;
+							}">OK</MatButton>
+	</MatDialogActions>
+</MatDialog>
+
+
+@code
+{
+	private List<Osoba> _listaOsoba = new List<Osoba>();
+	private Osoba _osobaCon = new Osoba();
+	private bool _zaDialog;
+	private HubConnection _hc;
+
+	protected override async Task OnInitializedAsync()
+	{
+		_hc = new HubConnectionBuilder().WithUrl(_nm.ToAbsoluteUri("osobe")).Build();
+
+		_hc.On<List<Osoba>>("EvoOsobe", lO => Neka(lO));
+
+
+		await _hc.StartAsync();
+		await _hc.SendAsync("UcitajOsobe");
+	}
+
+	public void Neka(List<Osoba> lO)
+	{
+		_listaOsoba = lO;
+		StateHasChanged();
+	}
+
+
+}
+
+
