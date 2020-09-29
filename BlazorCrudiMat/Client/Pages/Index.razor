@@ -1,7 +1,10 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.SignalR.Client
+@using Blazored.FluentValidation
 @inject NavigationManager _nm 
+@inject Blazored.LocalStorage.ILocalStorageService _ls
 
+<p><b>Kliknui ste na brojac @br puta </b></p>
 <MatTable Items="@_listaOsoba" class="mat-elevation-z5">
 	<MatTableHeader>
 		<th>Ime i prezime</th>
@@ -10,7 +13,7 @@
 	<MatTableRow>
 		<td>@context.ImeiPrezime</td>
 		<td>@context.Adresa</td>
-		<td><MatButton OnClick="() => { _listaOsoba.Remove(context); }" Icon="3d_rotation"/></td>
+		<td><MatButton OnClick='() => { _hc.SendAsync("ObrisiOsobu", context as Osoba); }' Icon="3d_rotation"/></td>
 		<td><MatButton Icon="card_giftcard" OnClick="() =>
 													 {
 														 _osobaCon = context;
@@ -25,12 +28,18 @@
 <MatDialog @bind-IsOpen="_zaDialog">
 	<MatDialogTitle>Editor</MatDialogTitle>
 	<MatDialogContent>
-		<MatTextField Label="Ime" @bind-Value="_osobaCon.Ime"></MatTextField>
-		<MatTextField Label="Prezime" @bind-Value="_osobaCon.Prezime"></MatTextField>
-		<MatTextField Label="PO" @bind-Value="_osobaCon.PObox"></MatTextField>
-		<MatTextField Label="Grad" @bind-Value="_osobaCon.Grad"></MatTextField>
-		<MatTextField Label="Ulica" @bind-Value="_osobaCon.Ulica"></MatTextField>
-		<MatTextField Label="Broj" @bind-Value="_osobaCon.Broj"></MatTextField>
+		<EditForm Model="_osobaCon">
+			<FluentValidationValidator/>
+			<ValidationSummary/>
+			<MatTextField Label="Ime" @bind-Value="_osobaCon.Ime"></MatTextField>
+			<ValidationMessage For="(() => _osobaCon.Ime)"/>
+			<MatTextField Label="Prezime" @bind-Value="_osobaCon.Prezime"></MatTextField>
+			<MatTextField Label="PO" @bind-Value="_osobaCon.PObox"></MatTextField>
+			<MatTextField Label="Grad" @bind-Value="_osobaCon.Grad"></MatTextField>
+			<MatTextField Label="Ulica" @bind-Value="_osobaCon.Ulica"></MatTextField>
+			<MatTextField Label="Broj" @bind-Value="_osobaCon.Broj"></MatTextField>
+			<MatButton Type="Submit">Unos</MatButton>
+		</EditForm>
 	</MatDialogContent>
 	<MatDialogActions>
 		<MatButton OnClick="@(() =>
@@ -38,12 +47,11 @@
 								  _zaDialog = false;
 								  _osobaCon = new Osoba();
 							  })">Otkazi</MatButton>
-		<MatButton OnClick="() => {
-								if (!_listaOsoba.Contains(_osobaCon))
-									_listaOsoba.Add(_osobaCon);
+		<MatButton OnClick='() => {
+								_hc.SendAsync("UrediOsobu", _osobaCon);
 								_osobaCon = new Osoba();
 								_zaDialog = false;
-							}">OK</MatButton>
+							}'>OK</MatButton>
 	</MatDialogActions>
 </MatDialog>
 
@@ -54,9 +62,13 @@
 	private Osoba _osobaCon = new Osoba();
 	private bool _zaDialog;
 	private HubConnection _hc;
+	private int br;
 
 	protected override async Task OnInitializedAsync()
 	{
+		if (await _ls.ContainKeyAsync("brojac"))
+			br = await _ls.GetItemAsync<int>("brojac");
+
 		_hc = new HubConnectionBuilder().WithUrl(_nm.ToAbsoluteUri("osobe")).Build();
 
 		_hc.On<List<Osoba>>("EvoOsobe", lO => Neka(lO));

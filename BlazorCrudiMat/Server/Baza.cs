@@ -11,11 +11,7 @@ namespace BlazorCrudiMat.Server
 	{
 		public DbSet<Osoba> Osobas { get; set; }
 
-		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-		{
-			base.OnConfiguring(optionsBuilder);
-			optionsBuilder.UseSqlServer(@"Data Source=DESKTOP-75VO5EN\TESTSERVER;Initial Catalog=BazaOsobe;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False");
-		}
+		public Baza(DbContextOptions<Baza> op) : base(op) { }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
